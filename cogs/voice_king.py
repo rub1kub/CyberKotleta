@@ -204,14 +204,6 @@ class VoiceKingCog(commands.Cog):
         if not guild.chunked:
             await guild.chunk()
 
-        if config.VOICE_KING_BOOTSTRAP_FROM_TOTAL_STATS:
-            bootstrapped_rows = await self.db.bootstrap_current_week_voice_from_total_stats()
-            if bootstrapped_rows:
-                logger.info(
-                    f"Недельная voice-статистика инициализирована из общей статистики: "
-                    f"{bootstrapped_rows} пользователей"
-                )
-
         top = await self.db.get_top_weekly_voice(25)
         leader_entry = None
         leader = None

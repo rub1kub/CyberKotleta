@@ -226,51 +226,6 @@ class Database:
         rows = await cursor.fetchall()
         return [(row["user_id"], row["total_voice_seconds"] or 0) for row in rows]
 
-    async def bootstrap_current_week_voice_from_total_stats(self) -> int:
-        """
-        Один раз подтянуть старую общую voice-статистику в текущую неделю.
-
-        Нужно для включения недельных механик на уже живом сервере, где
-        lifetime-статистика собиралась раньше появления таблицы voice_weekly_stats.
-
-        Returns:
-            Количество строк voice_stats, участвовавших в bootstrap.
-        """
-        week_start = self.get_current_week_start()
-        state_key = "voice_weekly_bootstrap_from_total_completed"
-        completed_week = await self.get_state(state_key)
-        if completed_week:
-            return 0
-
-        cursor = await self._connection.execute(
-            "SELECT COUNT(*) AS count FROM voice_stats WHERE total_voice_seconds > 0"
-        )
-        row = await cursor.fetchone()
-        affected_rows = row["count"] if row else 0
-
-        await self._connection.execute(
-            """INSERT INTO voice_weekly_stats (user_id, week_start, total_voice_seconds)
-               SELECT user_id, ?, total_voice_seconds
-               FROM voice_stats
-               WHERE total_voice_seconds > 0
-               ON CONFLICT(user_id, week_start) DO UPDATE
-               SET total_voice_seconds = MAX(
-                   voice_weekly_stats.total_voice_seconds,
-                   excluded.total_voice_seconds
-               )""",
-            (week_start,)
-        )
-        await self._connection.execute(
-            """INSERT INTO bot_state (key, value, updated_at)
-               VALUES (?, ?, CURRENT_TIMESTAMP)
-               ON CONFLICT(key) DO UPDATE
-               SET value = excluded.value,
-                   updated_at = CURRENT_TIMESTAMP""",
-            (state_key, week_start)
-        )
-        await self._connection.commit()
-        return affected_rows
-    
     async def clear_voice_join_time(self, user_id: int) -> None:
         """Очистить время входа в голосовой канал."""
         await self._connection.execute(
