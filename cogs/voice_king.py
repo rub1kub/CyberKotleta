@@ -85,8 +85,13 @@ class VoiceKingCog(commands.Cog):
         if seconds is None:
             return config.VOICE_KING_ROLE_NAME
 
-        hours = seconds // 3600
-        return f"{config.VOICE_KING_ROLE_NAME} — {hours}ч"[:100]
+        if seconds < 3600:
+            minutes = max(1, seconds // 60)
+            duration = f"{minutes}мин"
+        else:
+            duration = f"{seconds // 3600}ч"
+
+        return f"{config.VOICE_KING_ROLE_NAME} — {duration}"[:100]
 
     async def _sync_role_name(self, role: discord.Role, seconds: Optional[int]) -> None:
         """Обновить название роли с текущими часами лидера."""
