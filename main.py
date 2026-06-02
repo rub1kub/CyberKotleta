@@ -127,6 +127,12 @@ class CyberKotletaBot(commands.Bot):
             logger.info("Загружен ког: voice_presence_role")
         except Exception as e:
             logger.error(f"Ошибка при загрузке кога voice_presence_role: {e}", exc_info=True)
+
+        try:
+            await self.load_extension("cogs.voice_king")
+            logger.info("Загружен ког: voice_king")
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке кога voice_king: {e}", exc_info=True)
         
         # Синхронизация команд
         if config.GUILD_ID:

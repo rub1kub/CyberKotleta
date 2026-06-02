@@ -22,6 +22,15 @@ CREATE TABLE IF NOT EXISTS voice_stats (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+-- Таблица недельной статистики голосовых каналов
+CREATE TABLE IF NOT EXISTS voice_weekly_stats (
+    user_id INTEGER NOT NULL,
+    week_start TEXT NOT NULL,
+    total_voice_seconds INTEGER DEFAULT 0,
+    PRIMARY KEY (user_id, week_start),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
 -- Таблица статистики сообщений
 CREATE TABLE IF NOT EXISTS messages_stats (
     user_id INTEGER PRIMARY KEY,
@@ -68,10 +77,10 @@ CREATE TABLE IF NOT EXISTS reputation_votes (
 
 -- Индексы для ускорения запросов
 CREATE INDEX IF NOT EXISTS idx_voice_stats_total ON voice_stats(total_voice_seconds DESC);
+CREATE INDEX IF NOT EXISTS idx_voice_weekly_stats_total ON voice_weekly_stats(week_start, total_voice_seconds DESC);
 CREATE INDEX IF NOT EXISTS idx_messages_stats_total ON messages_stats(total_messages DESC);
 CREATE INDEX IF NOT EXISTS idx_custom_roles_role_id ON custom_roles(role_id);
 CREATE INDEX IF NOT EXISTS idx_user_levels_level ON user_levels(level DESC);
 CREATE INDEX IF NOT EXISTS idx_user_levels_total_exp ON user_levels(total_experience DESC);
 CREATE INDEX IF NOT EXISTS idx_reputation_total ON reputation(total_reputation DESC);
 CREATE INDEX IF NOT EXISTS idx_reputation_votes_message ON reputation_votes(message_id);
-

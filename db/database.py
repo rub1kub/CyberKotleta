@@ -8,7 +8,7 @@ import aiosqlite
 import logging
 from pathlib import Path
 from typing import Optional, List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,12 @@ class Database:
         """
         self.db_path = db_path
         self._connection: Optional[aiosqlite.Connection] = None
+
+    def get_current_week_start(self) -> str:
+        """Получить дату начала текущей недели в ISO-формате."""
+        now = datetime.now().date()
+        week_start = now - timedelta(days=now.weekday())
+        return week_start.isoformat()
     
     async def connect(self) -> None:
         """Установка подключения к БД."""
@@ -163,6 +169,7 @@ class Database:
     async def add_voice_time(self, user_id: int, seconds: int) -> None:
         """Добавить время в голосовом канале."""
         await self.ensure_user(user_id)
+        week_start = self.get_current_week_start()
         await self._connection.execute(
             """INSERT INTO voice_stats (user_id, total_voice_seconds)
                VALUES (?, ?)
@@ -170,7 +177,33 @@ class Database:
                SET total_voice_seconds = total_voice_seconds + ?""",
             (user_id, seconds, seconds)
         )
+        await self._connection.execute(
+            """INSERT INTO voice_weekly_stats (user_id, week_start, total_voice_seconds)
+               VALUES (?, ?, ?)
+               ON CONFLICT(user_id, week_start) DO UPDATE
+               SET total_voice_seconds = total_voice_seconds + ?""",
+            (user_id, week_start, seconds, seconds)
+        )
         await self._connection.commit()
+
+    async def get_top_weekly_voice(self, limit: int = 10, week_start: Optional[str] = None) -> List[Tuple[int, int]]:
+        """
+        Получить топ пользователей по времени в голосовых каналах за неделю.
+
+        Returns:
+            Список кортежей (user_id, total_voice_seconds)
+        """
+        target_week = week_start or self.get_current_week_start()
+        cursor = await self._connection.execute(
+            """SELECT user_id, total_voice_seconds
+               FROM voice_weekly_stats
+               WHERE week_start = ?
+               ORDER BY total_voice_seconds DESC
+               LIMIT ?""",
+            (target_week, limit)
+        )
+        rows = await cursor.fetchall()
+        return [(row["user_id"], row["total_voice_seconds"] or 0) for row in rows]
     
     async def clear_voice_join_time(self, user_id: int) -> None:
         """Очистить время входа в голосовой канал."""
@@ -465,4 +498,3 @@ class Database:
         )
         rows = await cursor.fetchall()
         return [(row["user_id"], row["total_reputation"]) for row in rows]
-

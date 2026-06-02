@@ -23,6 +23,7 @@ Discord-бот для сервера CyberKotleta: кастомные роли, 
 - **Репутация** — начисление за ответы `+`, `+rep` / `+реп` и позитивные реакции.
 - **Роль за тег сервера** — `Six Seven 67` для пользователей, которые отображают тег сервера.
 - **Роль присутствия в войсе** — `Сейчас в войсе` для пользователей, которые прямо сейчас находятся в голосовом канале.
+- **Войс-царь недели** — отбираемый титул для лидера недельного войс-топа с публичными анонсами захвата трона.
 - **Админ-инструменты** — ручная синхронизация и служебные команды для обслуживания ролей.
 
 ## Инженерные детали
@@ -49,7 +50,8 @@ CyberKotletaBot в main.py
         ├── cogs/levels.py                # Уровни и leaderboard
         ├── cogs/reputation.py            # Репутация
         ├── cogs/server_tag_role.py       # Роль за тег сервера
-        └── cogs/voice_presence_role.py   # Роль "Сейчас в войсе"
+        ├── cogs/voice_presence_role.py   # Роль "Сейчас в войсе"
+        └── cogs/voice_king.py            # Недельный Войс-царь
         │
         ▼
 db/database.py + db/migrations.sql
@@ -137,6 +139,7 @@ ROLE_DIVIDER_OTHER_ID=0
 - `/stats top-voice limit:<1-20>` — топ по времени в войсе.
 - `/stats top-messages limit:<1-20>` — топ по сообщениям.
 - `/stats top-combined limit:<1-20>` — комбинированный рейтинг активности.
+- `/voice-king` — текущий Войс-царь и недельный топ войса.
 
 ### Уровни и репутация
 
@@ -176,6 +179,22 @@ VOICE_PRESENCE_ROLE_HOIST=true
 VOICE_PRESENCE_SYNC_INTERVAL_SECONDS=60
 ```
 
+### `🎙 Войс-царь`
+
+Роль выдаётся только одному участнику — лидеру текущей недели по времени в голосовых каналах.
+Если другой участник обгоняет лидера, бот снимает роль со старого царя, выдаёт новому и публично объявляет захват трона.
+
+```env
+VOICE_KING_ROLE_NAME=🎙 Войс-царь
+VOICE_KING_ROLE_COLOR=15844367
+VOICE_KING_ROLE_HOIST=true
+VOICE_KING_SYNC_INTERVAL_SECONDS=60
+VOICE_KING_MIN_SECONDS=300
+VOICE_KING_ANNOUNCE_CHANNEL_ID=0
+VOICE_KING_TOXIC_ANNOUNCEMENTS=true
+VOICE_KING_ANNOUNCE_FIRST_CORONATION=true
+```
+
 ## База данных
 
 SQLite-файл создаётся автоматически по пути `DATABASE_PATH`.
@@ -185,6 +204,7 @@ SQLite-файл создаётся автоматически по пути `DAT
 - `users`
 - `custom_roles`
 - `voice_stats`
+- `voice_weekly_stats`
 - `messages_stats`
 - `commands_stats`
 - `user_levels`
