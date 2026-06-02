@@ -6,6 +6,13 @@ CREATE TABLE IF NOT EXISTS users (
     first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Таблица служебного состояния бота
+CREATE TABLE IF NOT EXISTS bot_state (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Таблица кастомных ролей
 CREATE TABLE IF NOT EXISTS custom_roles (
     user_id INTEGER PRIMARY KEY,

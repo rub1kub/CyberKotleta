@@ -193,7 +193,10 @@ VOICE_KING_MIN_SECONDS=300
 VOICE_KING_ANNOUNCE_CHANNEL_ID=0
 VOICE_KING_TOXIC_ANNOUNCEMENTS=true
 VOICE_KING_ANNOUNCE_FIRST_CORONATION=true
+VOICE_KING_BOOTSTRAP_FROM_TOTAL_STATS=true
 ```
+
+`VOICE_KING_BOOTSTRAP_FROM_TOTAL_STATS=true` один раз подтягивает уже накопленную общую voice-статистику в текущую неделю. Это нужно, если бот уже долго собирал время в войсе до появления механики Войс-царя.
 
 ## База данных
 
