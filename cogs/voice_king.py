@@ -58,8 +58,24 @@ class VoiceKingCog(commands.Cog):
         if role:
             return role
 
-        dynamic_prefix = f"{config.VOICE_KING_ROLE_NAME} — "
-        return next((role for role in guild.roles if role.name.startswith(dynamic_prefix)), None)
+        known_prefixes = [
+            f"{config.VOICE_KING_ROLE_NAME} — ",
+            "🎙 Войс-царь — ",
+        ]
+        known_exact_names = [
+            config.VOICE_KING_ROLE_NAME,
+            "🎙 Войс-царь",
+        ]
+
+        return next(
+            (
+                role
+                for role in guild.roles
+                if role.name in known_exact_names
+                or any(role.name.startswith(prefix) for prefix in known_prefixes)
+            ),
+            None,
+        )
 
     def _get_current_role_holders(self, guild: discord.Guild, role: discord.Role) -> list[discord.Member]:
         return [member for member in guild.members if role in member.roles and not member.bot]
