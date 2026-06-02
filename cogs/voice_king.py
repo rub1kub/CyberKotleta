@@ -169,8 +169,18 @@ class VoiceKingCog(commands.Cog):
                     f"{bootstrapped_rows} пользователей"
                 )
 
-        top = await self.db.get_top_weekly_voice(1)
-        if not top or top[0][1] < config.VOICE_KING_MIN_SECONDS:
+        top = await self.db.get_top_weekly_voice(25)
+        leader_entry = None
+        leader = None
+
+        for user_id, seconds in top:
+            member = guild.get_member(user_id)
+            if member and not member.bot:
+                leader_entry = (user_id, seconds)
+                leader = member
+                break
+
+        if not leader_entry or leader_entry[1] < config.VOICE_KING_MIN_SECONDS:
             removed = 0
             for holder in self._get_current_role_holders(guild, role):
                 try:
@@ -180,10 +190,7 @@ class VoiceKingCog(commands.Cog):
                     logger.error(f"Не удалось снять роль Войс-царя у {holder.id}: {e}")
             return 0, removed, 0
 
-        leader_id, leader_seconds = top[0]
-        leader = guild.get_member(leader_id)
-        if not leader or leader.bot:
-            return 1, 0, 1
+        leader_id, leader_seconds = leader_entry
 
         holders = self._get_current_role_holders(guild, role)
         old_holder = next((member for member in holders if member.id != leader.id), None)
