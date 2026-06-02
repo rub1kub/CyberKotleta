@@ -195,6 +195,19 @@ class VoiceKingCog(commands.Cog):
         except discord.HTTPException as e:
             logger.error(f"Ошибка Discord API при отправке анонса Войс-царя: {e}")
 
+    async def _clear_voice_king_role(self, role: discord.Role, reason: str) -> int:
+        """Снять роль Войс-царя со всех текущих держателей."""
+        removed = 0
+        for holder in self._get_current_role_holders(role.guild, role):
+            try:
+                await holder.remove_roles(role, reason=reason)
+                removed += 1
+            except (discord.Forbidden, discord.HTTPException) as e:
+                logger.error(f"Не удалось снять роль Войс-царя у {holder.id}: {e}")
+
+        await self._sync_role_name(role, None)
+        return removed
+
     async def sync_guild_voice_king(self, guild: discord.Guild) -> tuple[int, int, int]:
         """Синхронизировать роль Войс-царя на сервере."""
         role = await self.ensure_voice_king_role(guild)
@@ -205,28 +218,24 @@ class VoiceKingCog(commands.Cog):
             await guild.chunk()
 
         top = await self.db.get_top_weekly_voice(25)
-        leader_entry = None
-        leader = None
+        live_top = []
 
         for user_id, seconds in top:
             member = guild.get_member(user_id)
             if member and not member.bot:
-                leader_entry = (user_id, seconds)
-                leader = member
-                break
+                live_top.append((member, seconds))
 
-        if not leader_entry or leader_entry[1] < config.VOICE_KING_MIN_SECONDS:
-            removed = 0
-            for holder in self._get_current_role_holders(guild, role):
-                try:
-                    await holder.remove_roles(role, reason="Нет недельного лидера Войс-царя")
-                    removed += 1
-                except (discord.Forbidden, discord.HTTPException) as e:
-                    logger.error(f"Не удалось снять роль Войс-царя у {holder.id}: {e}")
-            await self._sync_role_name(role, None)
+        if not live_top or live_top[0][1] < config.VOICE_KING_MIN_SECONDS:
+            removed = await self._clear_voice_king_role(role, "Нет недельного лидера Войс-царя")
             return 0, removed, 0
 
-        leader_id, leader_seconds = leader_entry
+        leader, leader_seconds = live_top[0]
+        has_top_tie = len(live_top) > 1 and live_top[1][1] == leader_seconds
+        if has_top_tie:
+            removed = await self._clear_voice_king_role(role, "Ничья в недельном топе Войс-царя")
+            logger.info(f"Трон Войс-царя вакантен: ничья на {format_time_seconds(leader_seconds)}")
+            return len(live_top), removed, 0
+
         await self._sync_role_name(role, leader_seconds)
 
         holders = self._get_current_role_holders(guild, role)
