@@ -1,4 +1,4 @@
-# Secrets and local runtime configuration
+# Секреты и локальная runtime-конфигурация
 .env
 .env.*
 !.env.example
@@ -12,7 +12,7 @@ __pycache__/
 venv/
 env/
 
-# Bot runtime files
+# Runtime-файлы бота
 *.log
 *.pid
 bot_pid.txt
@@ -22,14 +22,14 @@ cyberkotleta.db
 *.sqlite
 *.sqlite3
 
-# Test and tooling caches
+# Кэши тестов и инструментов
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 
-# OS and editor noise
+# Локальные файлы ОС и редакторов
 .DS_Store
 Thumbs.db
 .idea/
