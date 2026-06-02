@@ -151,8 +151,16 @@ class VoiceKingCog(commands.Cog):
         channel_id = config.VOICE_KING_ANNOUNCE_CHANNEL_ID
         if channel_id:
             channel = guild.get_channel(channel_id)
-            if isinstance(channel, discord.TextChannel):
-                return channel
+            if not isinstance(channel, discord.TextChannel):
+                logger.warning(f"Канал для анонса Войс-царя {channel_id} не найден на сервере {guild.name}")
+                return None
+
+            permissions = channel.permissions_for(guild.me)
+            if not permissions.view_channel or not permissions.send_messages:
+                logger.warning(f"Нет доступа к каналу для анонса Войс-царя {channel_id}")
+                return None
+
+            return channel
 
         candidates = []
         if guild.system_channel:
