@@ -1,25 +1,88 @@
 # CyberKotleta Core
 
-Discord-бот для комьюнити-сервера CyberKotleta: кастомные роли, автоматические разделители, статистика активности, уровни, репутация и динамические роли за присутствие в войсе или отображаемый тег сервера.
+[![Python checks](https://github.com/rub1kub/CyberKotleta/actions/workflows/python.yml/badge.svg)](https://github.com/rub1kub/CyberKotleta/actions/workflows/python.yml)
 
-## Возможности
+Production-minded Discord automation bot for the CyberKotleta community: custom roles, activity stats, levels, reputation, dynamic voice roles, and server-tag rewards.
 
-- **Кастомные роли** — пользователи создают одну персональную роль с названием и цветом.
-- **Разделительные роли** — бот автоматически выдаёт роли-разделители по позициям ролей участника.
-- **Статистика активности** — сообщения, команды и время в голосовых каналах.
-- **Уровни и опыт** — опыт начисляется за сообщения, команды и голосовую активность.
-- **Репутация** — начисление за ответы `+`, `+rep`/`+реп` и реакции лайка.
-- **Server tag role** — роль `Six Seven 67` для пользователей, которые отображают тег сервера.
-- **Voice presence role** — роль `Сейчас в войсе` для пользователей, которые прямо сейчас находятся в голосовом канале.
+This is a **vibe coding / AI-assisted engineering project**: the product was built through fast AI-assisted iteration, then hardened with normal engineering practices — modular architecture, environment-based configuration, secret hygiene, CI checks, and production runtime validation.
 
-## Стек
+## Recruiter Snapshot
 
-- Python 3.12+
-- `discord.py`
-- `aiosqlite`
-- SQLite
+- **Project type:** real Discord community automation running on a live server.
+- **Role:** solo engineer using AI as a force multiplier, not as a replacement for engineering judgment.
+- **Stack:** Python 3.12, `discord.py`, async event handling, SQLite, GitHub Actions.
+- **What it demonstrates:** API integration, production bot architecture, background jobs, data persistence, permissions handling, security cleanup, and shipping speed.
+- **Code style:** small focused modules, cog-based feature separation, explicit configuration, readable operational scripts.
 
-## Быстрый старт
+Read the short engineering write-up: [`CASE_STUDY.md`](CASE_STUDY.md).
+
+## Why This Project Matters
+
+Most Discord bots are either toy examples or one-off scripts. CyberKotleta Core is closer to a compact production system:
+
+- it reacts to real-time Discord events;
+- manages server roles safely under Discord permission constraints;
+- persists activity data in SQLite;
+- runs scheduled background synchronization jobs;
+- exposes user-facing slash commands;
+- separates public source code from private runtime configuration.
+
+For a recruiter or hiring manager, this repo is evidence of practical execution: taking a messy live-server requirement, turning it into working automation, and then preparing it for public review without leaking secrets.
+
+## Core Features
+
+- **Custom roles** — users can create and manage one personal role with a custom name and color.
+- **Role dividers** — automatic divider roles based on member role positions.
+- **Activity stats** — tracks messages, command usage, and voice-channel time.
+- **Levels and XP** — awards XP for messages, commands, and voice activity.
+- **Reputation system** — awards reputation from `+`, `+rep` / `+реп`, and positive reactions.
+- **Server tag reward** — grants `Six Seven 67` to users displaying the server tag.
+- **Voice presence role** — grants `Сейчас в войсе` while a user is currently in a voice channel.
+- **Admin sync tools** — manual commands and scripts for role maintenance.
+
+## Engineering Highlights
+
+- **Async-first design:** built around Discord gateway events and `discord.ext.tasks`.
+- **Modular architecture:** features are split into cogs under `cogs/`.
+- **Persistent data layer:** SQLite schema and async database adapter in `db/`.
+- **Safe config model:** secrets and server-specific IDs are read from `.env`, not committed.
+- **Operational resilience:** periodic sync jobs repair role drift after missed events or restarts.
+- **Public repo hygiene:** runtime DB, logs, tokens, virtualenvs, and cache files are ignored.
+- **CI baseline:** GitHub Actions compiles all Python files on every push and PR.
+
+## Architecture
+
+```text
+Discord Gateway Events
+        │
+        ▼
+CyberKotletaBot in main.py
+        │
+        ├── cogs/custom_roles.py          # Custom roles and divider-role automation
+        ├── cogs/stats_voice.py           # Voice time tracking
+        ├── cogs/stats_messages.py        # Message stats and XP
+        ├── cogs/stats_commands.py        # /stats commands
+        ├── cogs/levels.py                # Levels and leaderboard
+        ├── cogs/reputation.py            # Reputation events and commands
+        ├── cogs/server_tag_role.py       # Server-tag reward role
+        └── cogs/voice_presence_role.py   # "Currently in voice" role
+        │
+        ▼
+db/database.py + db/migrations.sql
+        │
+        ▼
+SQLite runtime database
+```
+
+## Tech Stack
+
+- **Language:** Python 3.12+
+- **Discord API:** `discord.py`
+- **Database:** SQLite via `aiosqlite`
+- **Automation:** `discord.ext.tasks`
+- **CI:** GitHub Actions
+
+## Quick Start
 
 ```bash
 python3 -m venv venv
@@ -28,17 +91,17 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Заполните `.env`, затем запустите:
+Fill `.env`, then run:
 
 ```bash
 python main.py
 ```
 
-## Конфигурация
+## Configuration
 
-Все чувствительные значения читаются из переменных окружения или локального `.env`.
+All sensitive values are loaded from environment variables or local `.env`.
 
-Минимально нужны:
+Required minimum:
 
 ```env
 DISCORD_TOKEN=replace_with_discord_bot_token
@@ -48,7 +111,7 @@ GUILD_ID=0
 CHANNEL_ID_CUSTOM_ROLES=0
 ```
 
-Для разделительных ролей заполните:
+Divider roles:
 
 ```env
 ROLE_DIVIDER_CUSTOM_ID=0
@@ -58,61 +121,59 @@ ROLE_DIVIDER_CLANS_ID=0
 ROLE_DIVIDER_OTHER_ID=0
 ```
 
-`.env` не коммитится. Для публичного репозитория используйте только `.env.example`.
+`.env` is intentionally ignored by Git. Use `.env.example` as the public template.
 
-## Discord permissions
+## Discord Permissions
 
-Боту нужны:
+The bot needs:
 
 - Manage Roles
-- Read Messages/View Channels
+- Read Messages / View Channels
 - Send Messages
 - Use Slash Commands
 - Server Members Intent
 - Message Content Intent
 - Voice States Intent
 
-Роль бота должна находиться выше ролей, которые он создаёт, двигает, выдаёт или снимает.
+The bot role must be above every role it creates, moves, assigns, or removes.
 
-## Команды
+## Commands
 
-### Кастомные роли
+### Custom Roles
 
-- `/role create` — открыть форму создания кастомной роли.
-- `/role rename name:<name>` — переименовать свою роль.
-- `/role color color:<hex|preset>` — изменить цвет своей роли.
-- `/role delete` — удалить свою кастомную роль.
-- `/role setup` — отправить сообщение с кнопкой создания роли.
+- `/role create` — open a modal for custom role creation.
+- `/role rename name:<name>` — rename your custom role.
+- `/role color color:<hex|preset>` — change your custom role color.
+- `/role delete` — delete your custom role.
+- `/role setup` — post the static role-creation message with a button.
 
-### Статистика
+### Stats
 
-- `/stats me` — личная статистика.
-- `/stats user user:@member` — статистика пользователя.
-- `/stats top-voice limit:<1-20>` — топ по времени в войсе.
-- `/stats top-messages limit:<1-20>` — топ по сообщениям.
-- `/stats top-combined limit:<1-20>` — комбинированный рейтинг.
+- `/stats me` — show personal stats.
+- `/stats user user:@member` — show another member's stats.
+- `/stats top-voice limit:<1-20>` — voice-time leaderboard.
+- `/stats top-messages limit:<1-20>` — message-count leaderboard.
+- `/stats top-combined limit:<1-20>` — combined activity leaderboard.
 
-### Уровни и репутация
+### Levels and Reputation
 
-- `/level [user]` — уровень и опыт пользователя.
-- `/leaderboard [limit]` — топ по уровням.
-- `/rep user [user]` — репутация пользователя.
-- `/rep top [limit]` — топ по репутации.
+- `/level [user]` — show level and XP.
+- `/leaderboard [limit]` — level leaderboard.
+- `/rep user [user]` — show reputation.
+- `/rep top [limit]` — reputation leaderboard.
 
-### Админ-команды
+### Admin Tools
 
-- `/sync-server-tag-role` — ручная синхронизация роли за тег сервера.
-- `/move-colored-roles` — переместить цветные роли.
-- `/create-colored-roles` — создать и выдать цветные роли.
-- `/test-setup` — тестовая проверка slash-команд.
+- `/sync-server-tag-role` — manually sync the server-tag reward role.
+- `/move-colored-roles` — move color roles.
+- `/create-colored-roles` — create and assign color roles.
+- `/test-setup` — test slash-command registration.
 
-## Роли
+## Dynamic Roles
 
 ### `Six Seven 67`
 
-Роль создаётся автоматически и выдаётся пользователям, у которых `primary_guild` в Discord API указывает на текущий сервер и включено отображение server tag.
-
-Настройки:
+Automatically created and assigned to users whose Discord `primary_guild` points to the current server and whose server tag is visible.
 
 ```env
 SERVER_TAG_ROLE_NAME=Six Seven 67
@@ -123,9 +184,7 @@ SERVER_TAG_SYNC_INTERVAL_MINUTES=60
 
 ### `Сейчас в войсе`
 
-Роль создаётся автоматически, выдаётся при входе в голосовой канал и снимается при выходе.
-
-Настройки:
+Automatically created and assigned while a member is currently in a voice channel. Removed when the member leaves voice.
 
 ```env
 VOICE_PRESENCE_ROLE_NAME=Сейчас в войсе
@@ -134,11 +193,11 @@ VOICE_PRESENCE_ROLE_HOIST=true
 VOICE_PRESENCE_SYNC_INTERVAL_SECONDS=60
 ```
 
-## База данных
+## Database
 
-SQLite-файл создаётся автоматически по пути `DATABASE_PATH`.
+The SQLite database is created automatically at `DATABASE_PATH`.
 
-Основные таблицы:
+Main tables:
 
 - `users`
 - `custom_roles`
@@ -149,7 +208,7 @@ SQLite-файл создаётся автоматически по пути `DAT
 - `reputation`
 - `reputation_votes`
 
-## Структура
+## Repository Structure
 
 ```text
 CyberKotleta/
@@ -164,17 +223,30 @@ CyberKotleta/
 └── README.md
 ```
 
-## Безопасность перед публикацией
+## Quality and Security
 
-Перед push в GitHub:
+- Secrets are not hardcoded.
+- `.env`, runtime databases, logs, virtualenvs, and cache files are ignored.
+- GitHub Actions validates Python syntax.
+- Runtime role sync jobs recover from Discord event misses and restarts.
+- The public repository is sanitized from live-server secrets.
 
-- отзовите старые Discord-токены, если они когда-либо были в коде;
-- убедитесь, что `.env`, `*.db`, `*.log`, `venv/` и `__pycache__/` не попадают в Git;
-- включите GitHub Secret Scanning и Push Protection;
-- не коммитьте реальные ID приватных каналов, если не хотите раскрывать структуру сервера.
-
-## Проверка
+## Validation
 
 ```bash
 python -m py_compile main.py config.py logging_config.py db/database.py cogs/*.py utils/*.py scripts/*.py
 ```
+
+## Note on Vibe Coding
+
+This project intentionally uses the term **vibe coding**, but not as “random prompts until something works.”
+
+The workflow is:
+
+1. use AI to move quickly from idea to working feature;
+2. review and correct the architecture manually;
+3. separate runtime secrets from public code;
+4. add CI and operational documentation;
+5. ship, observe logs, and iterate based on real behavior.
+
+That is the practical value: faster delivery without skipping engineering responsibility.

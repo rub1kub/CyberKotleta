@@ -18,6 +18,7 @@ env/
 bot_pid.txt
 cyberkotleta.db
 *.db
+*.db-journal
 *.sqlite
 *.sqlite3
 
