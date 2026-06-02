@@ -222,18 +222,18 @@ class VoiceKingCog(commands.Cog):
 
         for user_id, seconds in top:
             member = guild.get_member(user_id)
-            if member and not member.bot:
+            if member and not member.bot and member.voice and member.voice.channel:
                 live_top.append((member, seconds))
 
         if not live_top or live_top[0][1] < config.VOICE_KING_MIN_SECONDS:
-            removed = await self._clear_voice_king_role(role, "Нет недельного лидера Войс-царя")
+            removed = await self._clear_voice_king_role(role, "Нет активного Войс-царя в голосовом канале")
             return 0, removed, 0
 
         leader, leader_seconds = live_top[0]
         has_top_tie = len(live_top) > 1 and live_top[1][1] == leader_seconds
         if has_top_tie:
-            removed = await self._clear_voice_king_role(role, "Ничья в недельном топе Войс-царя")
-            logger.info(f"Трон Войс-царя вакантен: ничья на {format_time_seconds(leader_seconds)}")
+            removed = await self._clear_voice_king_role(role, "Ничья среди активных кандидатов Войс-царя")
+            logger.info(f"Трон Войс-царя вакантен: ничья среди участников в войсе на {format_time_seconds(leader_seconds)}")
             return len(live_top), removed, 0
 
         await self._sync_role_name(role, leader_seconds)
