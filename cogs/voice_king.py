@@ -54,10 +54,37 @@ class VoiceKingCog(commands.Cog):
         return list(self.bot.guilds)
 
     def _find_voice_king_role(self, guild: discord.Guild) -> Optional[discord.Role]:
-        return discord.utils.get(guild.roles, name=config.VOICE_KING_ROLE_NAME)
+        role = discord.utils.get(guild.roles, name=config.VOICE_KING_ROLE_NAME)
+        if role:
+            return role
+
+        dynamic_prefix = f"{config.VOICE_KING_ROLE_NAME} — "
+        return next((role for role in guild.roles if role.name.startswith(dynamic_prefix)), None)
 
     def _get_current_role_holders(self, guild: discord.Guild, role: discord.Role) -> list[discord.Member]:
         return [member for member in guild.members if role in member.roles and not member.bot]
+
+    def _build_role_name(self, seconds: Optional[int] = None) -> str:
+        """Собрать название роли Войс-царя."""
+        if seconds is None:
+            return config.VOICE_KING_ROLE_NAME
+
+        hours = seconds // 3600
+        return f"{config.VOICE_KING_ROLE_NAME} — {hours}ч"[:100]
+
+    async def _sync_role_name(self, role: discord.Role, seconds: Optional[int]) -> None:
+        """Обновить название роли с текущими часами лидера."""
+        target_name = self._build_role_name(seconds)
+        if role.name == target_name:
+            return
+
+        try:
+            await role.edit(name=target_name, reason="Обновление времени Войс-царя в названии роли")
+            logger.info(f"Роль Войс-царя переименована: {target_name}")
+        except discord.Forbidden:
+            logger.error(f"Нет прав для переименования роли {role.name} ({role.id})")
+        except discord.HTTPException as e:
+            logger.error(f"Ошибка Discord API при переименовании роли {role.name}: {e}")
 
     async def ensure_voice_king_role(self, guild: discord.Guild) -> Optional[discord.Role]:
         """Создать или обновить роль Войс-царя."""
@@ -188,9 +215,11 @@ class VoiceKingCog(commands.Cog):
                     removed += 1
                 except (discord.Forbidden, discord.HTTPException) as e:
                     logger.error(f"Не удалось снять роль Войс-царя у {holder.id}: {e}")
+            await self._sync_role_name(role, None)
             return 0, removed, 0
 
         leader_id, leader_seconds = leader_entry
+        await self._sync_role_name(role, leader_seconds)
 
         holders = self._get_current_role_holders(guild, role)
         old_holder = next((member for member in holders if member.id != leader.id), None)
