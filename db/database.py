@@ -226,6 +226,19 @@ class Database:
         rows = await cursor.fetchall()
         return [(row["user_id"], row["total_voice_seconds"] or 0) for row in rows]
 
+    async def get_weekly_voice_seconds(self, user_id: int, week_start: Optional[str] = None) -> int:
+        """Получить недельное время пользователя в голосовых каналах."""
+        await self.ensure_user(user_id)
+        target_week = week_start or self.get_current_week_start()
+        cursor = await self._connection.execute(
+            """SELECT total_voice_seconds
+               FROM voice_weekly_stats
+               WHERE user_id = ? AND week_start = ?""",
+            (user_id, target_week)
+        )
+        row = await cursor.fetchone()
+        return (row["total_voice_seconds"] or 0) if row else 0
+
     async def clear_voice_join_time(self, user_id: int) -> None:
         """Очистить время входа в голосовой канал."""
         await self._connection.execute(

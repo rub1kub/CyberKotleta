@@ -62,6 +62,14 @@ class StatsVoiceCog(commands.Cog):
                         
                         # Получаем время входа пользователя
                         _, last_join_ts = await self.db.get_voice_stats(member.id)
+
+                        if not last_join_ts:
+                            await self.db.set_voice_join_time(member.id, now)
+                            logger.debug(
+                                f"Зафиксировано время входа для активного пользователя "
+                                f"{member.id} после запуска бота"
+                            )
+                            continue
                         
                         if last_join_ts:
                             # Вычисляем время, проведённое в канале
@@ -210,4 +218,3 @@ async def setup(bot: commands.Bot):
     """Функция для загрузки кога."""
     db = bot.db
     await bot.add_cog(StatsVoiceCog(bot, db))
-

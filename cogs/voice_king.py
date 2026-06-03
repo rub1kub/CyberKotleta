@@ -7,6 +7,7 @@
 
 import logging
 import random
+from datetime import datetime
 from typing import Optional
 
 import discord
@@ -79,6 +80,35 @@ class VoiceKingCog(commands.Cog):
 
     def _get_current_role_holders(self, guild: discord.Guild, role: discord.Role) -> list[discord.Member]:
         return [member for member in guild.members if role in member.roles and not member.bot]
+
+    def _iter_live_voice_members(self, guild: discord.Guild) -> list[discord.Member]:
+        """Получить всех живых участников в обычных голосовых каналах."""
+        members = []
+        seen_member_ids = set()
+
+        for channel in guild.voice_channels:
+            if channel == guild.afk_channel:
+                continue
+
+            for member in channel.members:
+                if member.bot or member.id in seen_member_ids:
+                    continue
+
+                seen_member_ids.add(member.id)
+                members.append(member)
+
+        return members
+
+    async def _get_live_weekly_seconds(self, member: discord.Member, now: datetime) -> int:
+        """Получить недельное время с учётом текущего несохранённого отрезка в войсе."""
+        weekly_seconds = await self.db.get_weekly_voice_seconds(member.id)
+        _, last_join_ts = await self.db.get_voice_stats(member.id)
+
+        if not last_join_ts:
+            return weekly_seconds
+
+        active_seconds = max(0, int((now - last_join_ts).total_seconds()))
+        return weekly_seconds + active_seconds
 
     def _build_role_name(self, seconds: Optional[int] = None) -> str:
         """Собрать название роли Войс-царя."""
@@ -230,13 +260,12 @@ class VoiceKingCog(commands.Cog):
         if not guild.chunked:
             await guild.chunk()
 
-        top = await self.db.get_top_weekly_voice(25)
+        now = datetime.now()
         live_top = []
 
-        for user_id, seconds in top:
-            member = guild.get_member(user_id)
-            if member and not member.bot and member.voice and member.voice.channel:
-                live_top.append((member, seconds))
+        for member in self._iter_live_voice_members(guild):
+            seconds = await self._get_live_weekly_seconds(member, now)
+            live_top.append((member, seconds))
 
         live_top.sort(key=lambda item: (-item[1], item[0].display_name.casefold(), item[0].id))
 
