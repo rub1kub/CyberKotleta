@@ -110,6 +110,17 @@ class VoiceKingCog(commands.Cog):
         active_seconds = max(0, int((now - last_join_ts).total_seconds()))
         return weekly_seconds + active_seconds
 
+    async def _get_weekly_top_members(self, guild: discord.Guild, limit: int = 1000) -> list[tuple[discord.Member, int]]:
+        """Получить недельных лидеров среди участников сервера."""
+        top = []
+        for user_id, seconds in await self.db.get_top_weekly_voice(limit):
+            member = guild.get_member(user_id)
+            if member and not member.bot:
+                top.append((member, seconds))
+
+        top.sort(key=lambda item: (-item[1], item[0].display_name.casefold(), item[0].id))
+        return top
+
     def _build_role_name(self, seconds: Optional[int] = None) -> str:
         """Собрать название роли Войс-царя."""
         if seconds is None:
@@ -269,14 +280,25 @@ class VoiceKingCog(commands.Cog):
 
         live_top.sort(key=lambda item: (-item[1], item[0].display_name.casefold(), item[0].id))
 
-        if not live_top or live_top[0][1] < config.VOICE_KING_MIN_SECONDS:
-            removed = await self._clear_voice_king_role(role, "Нет активного Войс-царя в голосовом канале")
+        leader_source = "voice"
+        leader_candidates = live_top
+        if not leader_candidates or leader_candidates[0][1] < config.VOICE_KING_MIN_SECONDS:
+            leader_source = "weekly"
+            leader_candidates = await self._get_weekly_top_members(guild)
+
+        if not leader_candidates or leader_candidates[0][1] < config.VOICE_KING_MIN_SECONDS:
+            removed = await self._clear_voice_king_role(role, "Нет недельного Войс-царя")
             return 0, removed, 0
 
-        leader, leader_seconds = live_top[0]
-        has_top_tie = len(live_top) > 1 and live_top[1][1] == leader_seconds
+        leader, leader_seconds = leader_candidates[0]
+        has_top_tie = len(leader_candidates) > 1 and leader_candidates[1][1] == leader_seconds
 
         await self._sync_role_name(role, leader_seconds)
+        if leader_source == "weekly":
+            logger.info(
+                f"Активных кандидатов в войсе нет; Войс-царём выбран недельный лидер "
+                f"{leader.display_name} ({leader.id})"
+            )
         if has_top_tie:
             logger.info(
                 f"Ничья Войс-царя на {format_time_seconds(leader_seconds)}; "
@@ -312,7 +334,7 @@ class VoiceKingCog(commands.Cog):
             await self._announce_new_king(guild, leader, old_holder, leader_seconds)
             self.last_announced_leaders[guild.id] = leader.id
 
-        return 1, changed, errors
+        return len(leader_candidates), changed, errors
 
     @tasks.loop(seconds=config.VOICE_KING_SYNC_INTERVAL_SECONDS)
     async def sync_voice_king_loop(self):
