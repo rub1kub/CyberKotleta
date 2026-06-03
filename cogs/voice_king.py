@@ -103,6 +103,10 @@ class VoiceKingCog(commands.Cog):
         """Проверить, видит ли бот участника онлайн."""
         return member.status != discord.Status.offline
 
+    def _display_name(self, member: discord.Member) -> str:
+        """Получить ник участника без возможности пинга."""
+        return discord.utils.escape_mentions(member.display_name)
+
     async def _get_live_weekly_seconds(self, member: discord.Member, now: datetime) -> int:
         """Получить недельное время с учётом текущего несохранённого отрезка в войсе."""
         weekly_seconds = await self.db.get_weekly_voice_seconds(member.id)
@@ -230,12 +234,15 @@ class VoiceKingCog(commands.Cog):
         old_member: Optional[discord.Member],
         seconds: int,
     ) -> str:
+        new_name = self._display_name(new_member)
+        old_name = self._display_name(old_member) if old_member else None
+
         if old_member and config.VOICE_KING_TOXIC_ANNOUNCEMENTS:
-            text = random.choice(CAPTURE_TEMPLATES).format(new=new_member.mention, old=old_member.mention)
+            text = random.choice(CAPTURE_TEMPLATES).format(new=new_name, old=old_name)
         elif config.VOICE_KING_ANNOUNCE_FIRST_CORONATION:
-            text = random.choice(FIRST_CORONATION_TEMPLATES).format(new=new_member.mention)
+            text = random.choice(FIRST_CORONATION_TEMPLATES).format(new=new_name)
         else:
-            text = f"🎙 {new_member.mention} стал **Войс-царём недели**."
+            text = f"🎙 {new_name} стал **Войс-царём недели**."
 
         return f"{text}\n`Недельное время в войсе: {format_time_seconds(seconds)}`"
 
@@ -252,7 +259,10 @@ class VoiceKingCog(commands.Cog):
             return
 
         try:
-            await channel.send(self._build_announcement(new_member, old_member, seconds))
+            await channel.send(
+                self._build_announcement(new_member, old_member, seconds),
+                allowed_mentions=discord.AllowedMentions.none(),
+            )
         except discord.Forbidden:
             logger.error(f"Нет прав отправлять анонс Войс-царя в канал {channel.id}")
         except discord.HTTPException as e:
@@ -402,7 +412,7 @@ class VoiceKingCog(commands.Cog):
         lines = []
         for index, (user_id, seconds) in enumerate(top, 1):
             member = interaction.guild.get_member(user_id)
-            name = member.mention if member else f"<@{user_id}>"
+            name = self._display_name(member) if member else f"ID {user_id}"
             prefix = "👑" if index == 1 else f"{index}."
             lines.append(f"{prefix} {name} — `{format_time_seconds(seconds)}`")
 
@@ -412,7 +422,7 @@ class VoiceKingCog(commands.Cog):
             color=discord.Color(config.VOICE_KING_ROLE_COLOR),
         )
         embed.set_footer(text="Трон держится только до тех пор, пока тебя не обогнали.")
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, allowed_mentions=discord.AllowedMentions.none())
 
 
 async def setup(bot: commands.Bot):
