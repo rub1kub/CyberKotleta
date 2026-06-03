@@ -31,6 +31,7 @@ class CyberKotletaBot(commands.Bot):
         intents = discord.Intents.default()
         intents.message_content = True
         intents.members = True
+        intents.presences = config.DISCORD_PRESENCES_INTENT
         intents.voice_states = True
         intents.guilds = True
         

@@ -99,6 +99,10 @@ class VoiceKingCog(commands.Cog):
 
         return members
 
+    def _member_is_online(self, member: discord.Member) -> bool:
+        """Проверить, видит ли бот участника онлайн."""
+        return member.status != discord.Status.offline
+
     async def _get_live_weekly_seconds(self, member: discord.Member, now: datetime) -> int:
         """Получить недельное время с учётом текущего несохранённого отрезка в войсе."""
         weekly_seconds = await self.db.get_weekly_voice_seconds(member.id)
@@ -110,12 +114,17 @@ class VoiceKingCog(commands.Cog):
         active_seconds = max(0, int((now - last_join_ts).total_seconds()))
         return weekly_seconds + active_seconds
 
-    async def _get_weekly_top_members(self, guild: discord.Guild, limit: int = 1000) -> list[tuple[discord.Member, int]]:
+    async def _get_weekly_top_members(
+        self,
+        guild: discord.Guild,
+        limit: int = 1000,
+        online_only: bool = False,
+    ) -> list[tuple[discord.Member, int]]:
         """Получить недельных лидеров среди участников сервера."""
         top = []
         for user_id, seconds in await self.db.get_top_weekly_voice(limit):
             member = guild.get_member(user_id)
-            if member and not member.bot:
+            if member and not member.bot and (not online_only or self._member_is_online(member)):
                 top.append((member, seconds))
 
         top.sort(key=lambda item: (-item[1], item[0].display_name.casefold(), item[0].id))
@@ -283,6 +292,10 @@ class VoiceKingCog(commands.Cog):
         leader_source = "voice"
         leader_candidates = live_top
         if not leader_candidates or leader_candidates[0][1] < config.VOICE_KING_MIN_SECONDS:
+            leader_source = "online"
+            leader_candidates = await self._get_weekly_top_members(guild, online_only=True)
+
+        if not leader_candidates or leader_candidates[0][1] < config.VOICE_KING_MIN_SECONDS:
             leader_source = "weekly"
             leader_candidates = await self._get_weekly_top_members(guild)
 
@@ -294,9 +307,14 @@ class VoiceKingCog(commands.Cog):
         has_top_tie = len(leader_candidates) > 1 and leader_candidates[1][1] == leader_seconds
 
         await self._sync_role_name(role, leader_seconds)
-        if leader_source == "weekly":
+        if leader_source == "online":
             logger.info(
-                f"Активных кандидатов в войсе нет; Войс-царём выбран недельный лидер "
+                f"Активных кандидатов в войсе нет; Войс-царём выбран онлайн-лидер недели "
+                f"{leader.display_name} ({leader.id})"
+            )
+        elif leader_source == "weekly":
+            logger.info(
+                f"Активных и онлайн-кандидатов нет; Войс-царём выбран общий недельный лидер "
                 f"{leader.display_name} ({leader.id})"
             )
         if has_top_tie:
@@ -354,6 +372,20 @@ class VoiceKingCog(commands.Cog):
     async def before_sync_voice_king_loop(self):
         await self.bot.wait_until_ready()
         logger.info("Периодическая синхронизация Войс-царя готова к запуску")
+
+    @commands.Cog.listener()
+    async def on_presence_update(self, before: discord.Member, after: discord.Member):
+        """Быстро пересобрать Войс-царя при входе/выходе недельного лидера в сеть."""
+        if after.bot or before.status == after.status:
+            return
+
+        if config.GUILD_ID and after.guild.id != config.GUILD_ID:
+            return
+
+        try:
+            await self.sync_guild_voice_king(after.guild)
+        except Exception as e:
+            logger.error(f"Ошибка синхронизации Войс-царя при смене онлайн-статуса {after.id}: {e}", exc_info=True)
 
     @app_commands.command(name="voice-king", description="Показать текущего Войс-царя и недельный топ войса")
     async def voice_king_command(self, interaction: discord.Interaction):

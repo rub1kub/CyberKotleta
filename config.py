@@ -82,6 +82,7 @@ _load_dotenv()
 DISCORD_TOKEN = _env("DISCORD_TOKEN")
 CLIENT_ID = _env_int("CLIENT_ID")
 CLIENT_SECRET = _env("CLIENT_SECRET")
+DISCORD_PRESENCES_INTENT = _env_bool("DISCORD_PRESENCES_INTENT", False)
 
 # ID сервера и каналов
 GUILD_ID = _env_int("GUILD_ID")
