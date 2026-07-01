@@ -157,12 +157,16 @@ ROLE_DIVIDER_OTHER_ID=0
 
 ## Динамические роли
 
-### `Six Seven 67`
+### Роль за тег сервера
 
-Роль создаётся автоматически и выдаётся пользователям, у которых `primary_guild` в Discord API указывает на текущий сервер и включено отображение server tag.
+Роль выдаётся пользователям, у которых `primary_guild` в Discord API указывает на текущий сервер, включено отображение server tag и значение тега совпадает с `SERVER_TAG_VALUE`.
+Если `SERVER_TAG_ROLE_ID` задан, бот использует существующую роль по ID и не меняет её настройки.
+Если пользователь убирает тег сервера, роль снимается на ближайшей синхронизации.
 
 ```env
+SERVER_TAG_ROLE_ID=1497935716016062556
 SERVER_TAG_ROLE_NAME=Six Seven 67
+SERVER_TAG_VALUE=62
 SERVER_TAG_ROLE_COLOR=16738740
 SERVER_TAG_ROLE_HOIST=true
 SERVER_TAG_SYNC_INTERVAL_MINUTES=60

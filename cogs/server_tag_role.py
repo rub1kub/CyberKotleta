@@ -49,11 +49,23 @@ class ServerTagRoleCog(commands.Cog):
         return None
 
     def _find_tag_role(self, guild: discord.Guild) -> Optional[discord.Role]:
+        role_id = getattr(config, "SERVER_TAG_ROLE_ID", 0)
+        if role_id:
+            role = guild.get_role(role_id)
+            if role:
+                return role
+
+            logger.error(f"Роль за тег сервера с ID {role_id} не найдена на сервере {guild.name}")
+            return None
+
         return discord.utils.get(guild.roles, name=config.SERVER_TAG_ROLE_NAME)
 
     async def ensure_tag_role(self, guild: discord.Guild) -> Optional[discord.Role]:
-        """Создать или обновить роль Six Seven 67."""
+        """Получить, создать или обновить роль за тег сервера."""
         role = self._find_tag_role(guild)
+        if getattr(config, "SERVER_TAG_ROLE_ID", 0):
+            return role
+
         reference_role = self._find_reference_role(guild)
         role_color = discord.Color(config.SERVER_TAG_ROLE_COLOR)
 
@@ -128,12 +140,19 @@ class ServerTagRoleCog(commands.Cog):
         identity_guild_id = primary_guild.get("identity_guild_id")
         identity_enabled = primary_guild.get("identity_enabled")
         tag = primary_guild.get("tag")
+        expected_tag = getattr(config, "SERVER_TAG_VALUE", "")
+        has_expected_tag = str(tag) == expected_tag if expected_tag else tag is not None
+
+        try:
+            identity_guild_id = int(identity_guild_id)
+        except (TypeError, ValueError):
+            return False
 
         return (
             identity_enabled is True
-            and tag is not None
+            and has_expected_tag
             and identity_guild_id is not None
-            and int(identity_guild_id) == member.guild.id
+            and identity_guild_id == member.guild.id
         )
 
     async def sync_member_tag_role(self, member: discord.Member, role: discord.Role) -> bool:
