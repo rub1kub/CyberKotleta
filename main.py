@@ -134,6 +134,12 @@ class CyberKotletaBot(commands.Bot):
             logger.info("Загружен ког: voice_king")
         except Exception as e:
             logger.error(f"Ошибка при загрузке кога voice_king: {e}", exc_info=True)
+
+        try:
+            await self.load_extension("cogs.minecraft_whitelist")
+            logger.info("Загружен ког: minecraft_whitelist")
+        except Exception as e:
+            logger.error(f"Ошибка при загрузке кога minecraft_whitelist: {e}", exc_info=True)
         
         # Синхронизация команд
         if config.GUILD_ID:

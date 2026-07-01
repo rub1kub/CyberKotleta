@@ -24,6 +24,7 @@ Discord-бот для сервера CyberKotleta: кастомные роли, 
 - **Роль за тег сервера** — `Six Seven 67` для пользователей, которые отображают тег сервера.
 - **Роль присутствия в войсе** — `Сейчас в войсе` для пользователей, которые прямо сейчас находятся в голосовом канале.
 - **Войс-царь недели** — отбираемый титул для лидера недельного войс-топа с публичными анонсами захвата трона.
+- **Minecraft whitelist** — привязка Minecraft-ника к Discord-пользователю, добавление через RCON и смена серверного ника.
 - **Админ-инструменты** — ручная синхронизация и служебные команды для обслуживания ролей.
 
 ## Инженерные детали
@@ -51,7 +52,8 @@ CyberKotletaBot в main.py
         ├── cogs/reputation.py            # Репутация
         ├── cogs/server_tag_role.py       # Роль за тег сервера
         ├── cogs/voice_presence_role.py   # Роль "Сейчас в войсе"
-        └── cogs/voice_king.py            # Недельный Войс-царь
+        ├── cogs/voice_king.py            # Недельный Войс-царь
+        └── cogs/minecraft_whitelist.py   # Minecraft whitelist через RCON
         │
         ▼
 db/database.py + db/migrations.sql
@@ -148,9 +150,18 @@ ROLE_DIVIDER_OTHER_ID=0
 - `/rep user [user]` — репутация пользователя.
 - `/rep top [limit]` — топ по репутации.
 
+### Minecraft
+
+- `/mc-link nick:<ник>` — привязать Minecraft-ник и добавить его в whitelist.
+- `/mc-unlink` — отвязать свой Minecraft-ник и убрать его из whitelist.
+- Сообщение с ником в whitelist-канале — быстрый способ привязки без slash-команды.
+
+Правила ника: 3-16 символов, английские буквы, цифры и `_`. У одного Discord-пользователя может быть только один Minecraft-ник, и один Minecraft-ник не может быть привязан к двум людям.
+
 ### Админ-команды
 
 - `/sync-server-tag-role` — ручная синхронизация роли за тег сервера.
+- `/mc-unlink-user` — админская отвязка Minecraft-ника пользователя.
 - `/move-colored-roles` — переместить цветные роли.
 - `/create-colored-roles` — создать и выдать цветные роли.
 - `/test-setup` — тестовая проверка slash-команд.
@@ -209,6 +220,22 @@ VOICE_KING_TOXIC_ANNOUNCEMENTS=true
 VOICE_KING_ANNOUNCE_FIRST_CORONATION=true
 ```
 
+## Minecraft whitelist
+
+Если пользователь отправляет корректный Minecraft-ник в канал `MINECRAFT_WHITELIST_CHANNEL_ID`, бот выполняет RCON-команду добавления, сохраняет привязку в SQLite и меняет серверный Discord-ник пользователя на привязанный Minecraft-ник.
+
+Отвязка доступна через `/mc-unlink`. После отвязки бот выполняет RCON-команду удаления и освобождает ник для повторной привязки.
+
+```env
+MINECRAFT_WHITELIST_CHANNEL_ID=1521859600838557837
+MINECRAFT_RCON_HOST=144.31.30.62
+MINECRAFT_RCON_PORT=25575
+MINECRAFT_RCON_PASSWORD=replace_with_rcon_password
+MINECRAFT_RCON_TIMEOUT_SECONDS=5.0
+MINECRAFT_RCON_ADD_COMMAND=/easywl add {nick}
+MINECRAFT_RCON_REMOVE_COMMAND=/easywl remove {nick}
+```
+
 ## База данных
 
 SQLite-файл создаётся автоматически по пути `DATABASE_PATH`.
@@ -224,6 +251,7 @@ SQLite-файл создаётся автоматически по пути `DAT
 - `user_levels`
 - `reputation`
 - `reputation_votes`
+- `minecraft_whitelist_links`
 
 ## Структура
 

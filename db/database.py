@@ -91,6 +91,64 @@ class Database:
             (key, value)
         )
         await self._connection.commit()
+
+    # Методы для Minecraft whitelist
+    async def get_minecraft_link(self, user_id: int) -> Optional[dict]:
+        """Получить привязанный Minecraft-ник пользователя."""
+        cursor = await self._connection.execute(
+            """SELECT discord_user_id, minecraft_nick, minecraft_nick_lc, discord_nick_before
+               FROM minecraft_whitelist_links
+               WHERE discord_user_id = ?""",
+            (user_id,)
+        )
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+    async def get_minecraft_link_owner(self, minecraft_nick: str) -> Optional[int]:
+        """Получить Discord user_id владельца Minecraft-ника."""
+        cursor = await self._connection.execute(
+            """SELECT discord_user_id
+               FROM minecraft_whitelist_links
+               WHERE minecraft_nick_lc = ?""",
+            (minecraft_nick.lower(),)
+        )
+        row = await cursor.fetchone()
+        return row["discord_user_id"] if row else None
+
+    async def set_minecraft_link(
+        self,
+        user_id: int,
+        minecraft_nick: str,
+        discord_nick_before: Optional[str],
+    ) -> None:
+        """Сохранить привязку Discord-пользователя к Minecraft-нику."""
+        await self.ensure_user(user_id)
+        await self._connection.execute(
+            """INSERT INTO minecraft_whitelist_links (
+                   discord_user_id,
+                   minecraft_nick,
+                   minecraft_nick_lc,
+                   discord_nick_before
+               )
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(discord_user_id) DO UPDATE
+               SET minecraft_nick = excluded.minecraft_nick,
+                   minecraft_nick_lc = excluded.minecraft_nick_lc,
+                   discord_nick_before = excluded.discord_nick_before,
+                   updated_at = CURRENT_TIMESTAMP""",
+            (user_id, minecraft_nick, minecraft_nick.lower(), discord_nick_before)
+        )
+        await self._connection.commit()
+        logger.info(f"Minecraft-ник {minecraft_nick} привязан к пользователю {user_id}")
+
+    async def remove_minecraft_link(self, user_id: int) -> None:
+        """Удалить привязку Minecraft-ника пользователя."""
+        await self._connection.execute(
+            "DELETE FROM minecraft_whitelist_links WHERE discord_user_id = ?",
+            (user_id,)
+        )
+        await self._connection.commit()
+        logger.info(f"Minecraft-привязка удалена у пользователя {user_id}")
     
     # Методы для работы с кастомными ролями
     async def get_custom_role(self, user_id: int) -> Optional[int]:

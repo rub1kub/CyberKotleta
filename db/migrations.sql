@@ -82,6 +82,17 @@ CREATE TABLE IF NOT EXISTS reputation_votes (
     FOREIGN KEY (target_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+-- Привязка Discord-пользователей к Minecraft-никам для whitelist
+CREATE TABLE IF NOT EXISTS minecraft_whitelist_links (
+    discord_user_id INTEGER PRIMARY KEY,
+    minecraft_nick TEXT NOT NULL,
+    minecraft_nick_lc TEXT NOT NULL UNIQUE,
+    discord_nick_before TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (discord_user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
 -- Индексы для ускорения запросов
 CREATE INDEX IF NOT EXISTS idx_voice_stats_total ON voice_stats(total_voice_seconds DESC);
 CREATE INDEX IF NOT EXISTS idx_voice_weekly_stats_total ON voice_weekly_stats(week_start, total_voice_seconds DESC);
@@ -91,3 +102,4 @@ CREATE INDEX IF NOT EXISTS idx_user_levels_level ON user_levels(level DESC);
 CREATE INDEX IF NOT EXISTS idx_user_levels_total_exp ON user_levels(total_experience DESC);
 CREATE INDEX IF NOT EXISTS idx_reputation_total ON reputation(total_reputation DESC);
 CREATE INDEX IF NOT EXISTS idx_reputation_votes_message ON reputation_votes(message_id);
+CREATE INDEX IF NOT EXISTS idx_minecraft_whitelist_nick_lc ON minecraft_whitelist_links(minecraft_nick_lc);
